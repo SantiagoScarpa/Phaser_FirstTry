@@ -1,4 +1,10 @@
-import { createAnimations } from "./animations/animations.js"
+import settings from './settings.json' with {type: 'json'};
+import { createAnimations } from "./modules/animations/animations.js";
+import { checkControlsP1, checkControlsP2 } from "./modules/controls/controls.js";
+import { globals } from "./modules/globalFunctions.js";
+import { loadAudios, playAudios } from './modules/audio.js';
+
+const { playAnimation, isTouchingFloor } = globals
 
 const config = {//Objeto global que viene en archivo min de Phaser 
     type: Phaser.AUTO, // tipo de renderizado para el juego
@@ -24,12 +30,11 @@ const config = {//Objeto global que viene en archivo min de Phaser
 new Phaser.Game(config);
 
 function preload() {
+    console.log(`version ${settings.version}`)
     //mostrar en consola los keycodes
     //console.log(Phaser.Input.Keyboard.KeyCodes)
 
     //this --> el juego (la instancia de hecho)
-    //this.load.image('menu1', 'assets/imgs/cards/cardsAcesDark.png');
-
     this.load.spritesheet(
         'blueTank',
         './assets/imgs/sprite/blueTank/right_move_blue-Sheet.png',
@@ -41,6 +46,16 @@ function preload() {
         { frameWidth: 64, frameHeight: 64 }
     )
 
+    this.load.spritesheet(
+        'redTank',
+        './assets/imgs/sprite/redTank/right_move_red-Sheet.png',
+        { frameWidth: 64, frameHeight: 64 }
+    )
+    this.load.spritesheet(
+        'redTankExplotion',
+        './assets/imgs/sprite/redTank/right_explode_red-Sheet.png',
+        { frameWidth: 64, frameHeight: 64 }
+    )
 
     //cargo suelo
     this.load.spritesheet('floorGrass', './assets/imgs/sprite/ground.png', { frameWidth: 96, frameHeight: 64 })
@@ -50,7 +65,7 @@ function preload() {
     this.load.image('cloud2', './assets/imgs/bg_cloud2.png')
     this.load.image('cloud1', './assets/imgs/bg_cloud01.png')
 
-    this.load.audio('explotion', './assets/sounds/Retro Explosion Short 15.wav')
+    loadAudios(this)
 }
 
 function create() {
@@ -88,8 +103,12 @@ function create() {
         .create(256, config.height, 'floorGrass')
 
     this.floor
-        .create(500, config.height, 'floorGrass').setTexture('floorGrass', ['1'])
+        .create(500, config.height, 'floorGrass')
+        .setTexture('floorGrass', ['1'])
 
+    this.floor
+        .create(619, config.height, 'floorGrass')
+        .setTexture('floorGrass', ['1'])
 
     this.floor.children.iterate((child) => {
         child
@@ -99,7 +118,7 @@ function create() {
     })
 
 
-    //SETEO TANQUE
+    //SETEO TANQUES
     this.blueTank = this.physics.add.sprite(50, config.height - 150, 'blueTank')
     this.blueTank
         .setSize(34, 32) // tama;o del hitbox
@@ -109,10 +128,23 @@ function create() {
         .setCollideWorldBounds(true)//hago que no se pueda ir del mapa
         .setGravityY(300)
 
+    this.blueTank.speed = settings.speedBlue
 
     this.physics.add.collider(this.blueTank, this.floor)
 
+    this.redTank = this.physics.add.sprite(550, config.height - 150, 'redTank')
+    this.redTank
+        .setSize(34, 32) // tama;o del hitbox
+        .setOffset(11, 16) //pongo el sprite en el hitbox
+        .setScale(1.5)
+        //.refreshBody() //es para sincronizar la posicion y tama;o con el objeto padre
+        .setCollideWorldBounds(true)//hago que no se pueda ir del mapa
+        .setGravityY(300)
+    this.redTank.speed = settings.speedRed;
+    this.redTank.flipX = true
+    this.physics.add.collider(this.redTank, this.floor)
 
+    this.physics.add.collider(this.blueTank, this.redTank, onTankHit, null, this)
 
     //MUNDO
     //dejo que el tanque siga a la derecha
@@ -122,42 +154,55 @@ function create() {
     this.cameras.main.startFollow(this.blueTank)
 
     //creo este objeto para poder interactuar con el teclado 
-    this.keys = this.input.keyboard.addKeys('UP,DOWN,LEFT,RIGHT,SPACE,SHIFT,P');
+    this.keys = this.input.keyboard.addKeys('UP,DOWN,LEFT,RIGHT,SPACE,SHIFT,P,W,A,S,D');
 
     //dejo las animaciones del tanque en un archivo diferente
     createAnimations(this)
 
 }
 
+function onTankHit(blueTank, redTank) {
+    // blueTank.isDead = true;
+    // redTank.isDead = true
+    blueTank.setTexture('blueTankExplotion', 0)
+    playAnimation(blueTank, 'blueTank-explode')
+    redTank.setTexture('redTankExplotion', 0)
+    playAnimation(redTank, 'redTank-explode')
+
+    //playAudios('explotion', this, settings.volume)
+
+
+    //setTimeout(() => { this.scene.restart() }, 2000)
+}
+
 function update() {
-    if (this.blueTank.isDead) return
-    if (this.keys.LEFT.isDown) {
-        this.blueTank.x -= 2
-        this.blueTank.flipX = true
-        this.blueTank.anims.play('blueTank-move', true)
+    const { blueTank, redTank } = this
+    if (blueTank.isDead || redTank.isDead) return
 
-    } else if (this.keys.RIGHT.isDown) {
-        this.blueTank.x += 2
-        this.blueTank.flipX = false
-        this.blueTank.anims.play('blueTank-move', true)
-    } else {
-        this.blueTank.anims.play('blueTank-idle', true)
+    checkControlsP1(this) //seteo controles 
+    checkControlsP2(this) //seteo controles 
+    //muerte por caida 
+    if (blueTank.y >= config.height - 40) {
+        blueTank.isDead = true;
+        blueTank.setTexture('blueTankExplotion', 0)
+        playAnimation(blueTank, 'blueTank-explode')
+        blueTank.setCollideWorldBounds(false)
+        playAudios('explotion', this, settings.volume)
+
+        setTimeout(() => { blueTank.setVelocityY(-300) }, 100)
+        setTimeout(() => { this.scene.restart() }, 2000)
     }
 
-    if (this.keys.UP.isDown && this.blueTank.body.touching.down) {
-        this.blueTank.setVelocityY(-100)
-    }
+    if (redTank.y >= config.height - 40) {
+        redTank.isDead = true;
+        redTank.setTexture('redTankExplotion', 0)
+        playAnimation(redTank, 'redTank-explode')
+        redTank.setCollideWorldBounds(false)
+        playAudios('explotion', this, settings.volume)
 
-    if (this.blueTank.y >= config.height - 60) {
-        this.blueTank.isDead = true;
-        this.blueTank.setTexture('blueTankExplotion', 0)
-        this.blueTank.anims.play('blueTank-explode', true)
-        this.blueTank.setCollideWorldBounds(false)
-        this.sound.add('explotion', { volume: 0.2 }).play()
-
-
-        setTimeout(() => { this.blueTank.setVelocityY(-300) }, 100)
+        setTimeout(() => { redTank.setVelocityY(-300) }, 100)
         setTimeout(() => { this.scene.restart() }, 2000)
     }
 
 }
+
