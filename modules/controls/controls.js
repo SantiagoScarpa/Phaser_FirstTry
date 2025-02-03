@@ -61,7 +61,9 @@ export function checkControlsP2({ redTank, keys }) {
 }
 
 export function killTank(tank, { sound }) {
+    if (tank.isDead) return
     tank.isDead = true;
+
     if (tank.color == tankColors.BLUE) {
         tank.setTexture('blueTankExplotion', 0)
         playAnimation(tank, 'blueTank-explode')
