@@ -5,3 +5,8 @@ export const globals = {
     isTouchingFloor: (obj) => { return obj.body.touching.down },
 
 }
+
+export const tankColors = {
+    BLUE: 1,
+    RED: 2
+}

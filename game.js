@@ -1,10 +1,9 @@
 import settings from './settings.json' with {type: 'json'};
 import { createAnimations } from "./modules/animations/animations.js";
-import { checkControlsP1, checkControlsP2 } from "./modules/controls/controls.js";
-import { globals } from "./modules/globalFunctions.js";
+import { checkControlsP1, checkControlsP2, killTank } from "./modules/controls/controls.js";
+import { tankColors } from "./modules/globalFunctions.js";
 import { loadAudios, playAudios } from './modules/audio.js';
 
-const { playAnimation, isTouchingFloor } = globals
 
 const config = {//Objeto global que viene en archivo min de Phaser 
     type: Phaser.AUTO, // tipo de renderizado para el juego
@@ -128,6 +127,8 @@ function create() {
         .setCollideWorldBounds(true)//hago que no se pueda ir del mapa
         .setGravityY(300)
 
+    this.blueTank.color = tankColors.BLUE
+
     this.blueTank.speed = settings.speedBlue
 
     this.physics.add.collider(this.blueTank, this.floor)
@@ -140,8 +141,10 @@ function create() {
         //.refreshBody() //es para sincronizar la posicion y tama;o con el objeto padre
         .setCollideWorldBounds(true)//hago que no se pueda ir del mapa
         .setGravityY(300)
+    this.redTank.color = tankColors.RED
     this.redTank.speed = settings.speedRed;
     this.redTank.flipX = true
+
     this.physics.add.collider(this.redTank, this.floor)
 
     this.physics.add.collider(this.blueTank, this.redTank, onTankHit, null, this)
@@ -164,10 +167,11 @@ function create() {
 function onTankHit(blueTank, redTank) {
     // blueTank.isDead = true;
     // redTank.isDead = true
-    blueTank.setTexture('blueTankExplotion', 0)
-    playAnimation(blueTank, 'blueTank-explode')
-    redTank.setTexture('redTankExplotion', 0)
-    playAnimation(redTank, 'redTank-explode')
+    killTank(blueTank, this);
+    killTank(redTank, this)
+    // playAnimation(blueTank, 'blueTank-explode')
+    // redTank.setTexture('redTankExplotion', 0)
+    // playAnimation(redTank, 'redTank-explode')
 
     //playAudios('explotion', this, settings.volume)
 
@@ -183,24 +187,19 @@ function update() {
     checkControlsP2(this) //seteo controles 
     //muerte por caida 
     if (blueTank.y >= config.height - 40) {
-        blueTank.isDead = true;
-        blueTank.setTexture('blueTankExplotion', 0)
-        playAnimation(blueTank, 'blueTank-explode')
+        killTank(blueTank, this);
         blueTank.setCollideWorldBounds(false)
-        playAudios('explotion', this, settings.volume)
-
+        //salto cuando cae al vacio 
         setTimeout(() => { blueTank.setVelocityY(-300) }, 100)
+        //reinicio la escena
         setTimeout(() => { this.scene.restart() }, 2000)
     }
 
     if (redTank.y >= config.height - 40) {
-        redTank.isDead = true;
-        redTank.setTexture('redTankExplotion', 0)
-        playAnimation(redTank, 'redTank-explode')
+        killTank(redTank, this)
         redTank.setCollideWorldBounds(false)
-        playAudios('explotion', this, settings.volume)
-
         setTimeout(() => { redTank.setVelocityY(-300) }, 100)
+
         setTimeout(() => { this.scene.restart() }, 2000)
     }
 

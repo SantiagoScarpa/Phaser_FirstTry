@@ -3,5 +3,6 @@ export const loadAudios = ({ load }) => {
 }
 
 export const playAudios = (id, { sound }, volume) => {
-    return sound.add(id, volume).play()
+
+    return sound.add(id, { volume: volume }).play()
 }

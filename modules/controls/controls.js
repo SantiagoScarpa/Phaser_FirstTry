@@ -1,4 +1,6 @@
-import { globals } from "../globalFunctions.js";
+import settings from '../../settings.json' with {type: 'json'};
+import { globals, tankColors } from "../globalFunctions.js";
+import { playAudios } from "../audio.js";
 const { playAnimation, isTouchingFloor } = globals
 
 export function checkControlsP1({ blueTank, keys }) {
@@ -56,4 +58,16 @@ export function checkControlsP2({ redTank, keys }) {
         redTank.angle = 0
     }
 
+}
+
+export function killTank(tank, { sound }) {
+    tank.isDead = true;
+    if (tank.color == tankColors.BLUE) {
+        tank.setTexture('blueTankExplotion', 0)
+        playAnimation(tank, 'blueTank-explode')
+    } else {
+        tank.setTexture('redTankExplotion', 0)
+        playAnimation(tank, 'redTank-explode')
+    }
+    playAudios('explotion', { sound }, settings.volume)
 }
