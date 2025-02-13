@@ -116,8 +116,8 @@ class gameScene extends Phaser.Scene {
             .setGravityY(300)
 
         this.blueTank.color = tankColors.BLUE
-
         this.blueTank.speed = settings.speedBlue
+        this.blueTank.isDead = false
 
         this.physics.add.collider(this.blueTank, this.floor)
 
@@ -131,6 +131,7 @@ class gameScene extends Phaser.Scene {
         this.redTank.color = tankColors.RED
         this.redTank.speed = settings.speedRed;
         this.redTank.flipX = true
+        this.redTank.isDead = false
 
         this.physics.add.collider(this.redTank, this.floor)
 
@@ -205,8 +206,8 @@ class menuScene extends Phaser.Scene {
 
 const config = {//Objeto global que viene en archivo min de Phaser 
     type: Phaser.AUTO, // tipo de renderizado para el juego
-    width: 1028,
-    height: 512,
+    width: 1920,
+    height: 1080,
     backgroundColor: '#8AC4FF',
     parent: 'game', //contenedor donde se va a renderizar el juego, es el div que esta en el html
     physics: {
